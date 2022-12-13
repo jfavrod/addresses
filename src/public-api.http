@@ -1,0 +1,9 @@
+POST http://localhost:8080/zip/lookup
+Content-Type: application/json
+
+{
+  "address1": "6500 South Avalon AVE",
+  "address2": "313",
+  "city": "Sioux Falls",
+  "state": "SD"
+}
