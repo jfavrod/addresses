@@ -1,4 +1,5 @@
-POST http://localhost:8080/zip/lookup
+#POST https://apps.jasonfavrod.com:3001/zip/lookup
+POST https://localhost:8080/zip/lookup
 Content-Type: application/json
 
 {
