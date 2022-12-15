@@ -1,7 +1,10 @@
 package com.jasonfavrod.addresses.services.zipcode.usps;
 
 import com.jasonfavrod.addresses.models.Address;
+import com.jasonfavrod.addresses.services.cache.CacheService;
 import com.jasonfavrod.addresses.services.zipcode.ZipCodeLookup;
+import com.jasonfavrod.addresses.utils.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -22,13 +25,17 @@ import java.util.Properties;
 
 @Service
 public class UspsZipCodeService implements ZipCodeLookup {
-    private String baseUrl;
-    private HttpClient httpClient;
-    private String userId;
+    private final String baseUrl;
+    private final CacheService cacheService;
+    private final HttpClient httpClient;
+    private final String userId;
+    private int secondsToExpireCache = 60 * 60 * 24;
 
-    public UspsZipCodeService() throws IOException {
+    @Autowired
+    public UspsZipCodeService(CacheService cacheService) throws IOException {
         var env = System.getenv();
 
+        this.cacheService = cacheService;
         httpClient = HttpClient.newHttpClient();
 
         var res = this.getClass().getClassLoader().getResourceAsStream("application.properties");
@@ -40,9 +47,13 @@ public class UspsZipCodeService implements ZipCodeLookup {
     }
 
     public String getByAddress(Address address) {
-        var zip = "";
+        var zip = cacheService.get(getCacheKey(address));
         var lookupRequest = new LookupRequestXml(userId);
         lookupRequest.addAddress(new com.jasonfavrod.addresses.services.zipcode.usps.Address(address));
+
+        if (!StringUtils.isEmptyOrNull(zip)) {
+            return zip;
+        }
 
         try {
             var xml = lookupRequest.toXml();
@@ -60,18 +71,15 @@ public class UspsZipCodeService implements ZipCodeLookup {
             );
         } catch (URISyntaxException e) {
             System.out.println("This should never happen.");
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (XPathExpressionException e) {
-            throw new RuntimeException(e);
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (SAXException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
+        cacheService.set(getCacheKey(address), zip, secondsToExpireCache);
         return zip;
+    }
+
+    private String getCacheKey(Address address) {
+        return String.format("zip-%s", address.hash());
     }
 }

@@ -1,5 +1,8 @@
 package com.jasonfavrod.addresses.models;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 public class Address {
     protected String address1;
     protected String address2;
@@ -54,5 +57,30 @@ public class Address {
 
     public void setZip4(String zip4) {
         this.zip4 = zip4;
+    }
+
+    public String hash() {
+        MessageDigest md5;
+
+        try {
+            md5 = MessageDigest.getInstance("md5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        md5.update(toString().getBytes());
+        return new String(md5.digest());
+    }
+
+    @Override
+    public String toString() {
+        return "Address{" +
+                "address1='" + address1 + '\'' +
+                ", address2='" + address2 + '\'' +
+                ", city='" + city + '\'' +
+                ", state='" + state + '\'' +
+                ", zip5='" + zip5 + '\'' +
+                ", zip4='" + zip4 + '\'' +
+                '}';
     }
 }
